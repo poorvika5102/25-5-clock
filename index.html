@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>25 + 5 Clock</title>
 
-  <!-- React 17 (FCC safe) -->
+  <!-- React 17 (FCC compatible) -->
   <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
@@ -24,7 +24,7 @@
     .clock {
       background: #1e293b;
       padding: 20px;
-      width: 350px;
+      width: 360px;
       border-radius: 8px;
       text-align: center;
     }
@@ -32,7 +32,7 @@
     .length-control {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     .control {
@@ -50,10 +50,6 @@
       font-size: 3rem;
       margin: 15px 0;
     }
-
-    .controls {
-      margin-top: 10px;
-    }
   </style>
 </head>
 
@@ -67,6 +63,7 @@
       const [timeLeft, setTimeLeft] = React.useState(25 * 60);
       const [timerLabel, setTimerLabel] = React.useState("Session");
       const [running, setRunning] = React.useState(false);
+      const [justFinished, setJustFinished] = React.useState(false);
 
       const intervalRef = React.useRef(null);
       const beepRef = React.useRef(null);
@@ -77,7 +74,7 @@
         return `${minutes}:${seconds}`;
       };
 
-      const handleIncrement = (type) => {
+      const increment = (type) => {
         if (running) return;
         if (type === "break" && breakLength < 60) {
           setBreakLength(breakLength + 1);
@@ -88,7 +85,7 @@
         }
       };
 
-      const handleDecrement = (type) => {
+      const decrement = (type) => {
         if (running) return;
         if (type === "break" && breakLength > 1) {
           setBreakLength(breakLength - 1);
@@ -102,7 +99,13 @@
       const tick = () => {
         setTimeLeft(prev => {
           if (prev === 0) {
-            beepRef.current.play();
+            if (!justFinished) {
+              beepRef.current.play();
+              setJustFinished(true);
+              return 0; // stay at 00:00 for one tick
+            }
+
+            setJustFinished(false);
             if (timerLabel === "Session") {
               setTimerLabel("Break");
               return breakLength * 60;
@@ -132,6 +135,7 @@
         setSessionLength(25);
         setTimeLeft(25 * 60);
         setTimerLabel("Session");
+        setJustFinished(false);
         beepRef.current.pause();
         beepRef.current.currentTime = 0;
       };
@@ -145,23 +149,23 @@
           <div className="length-control">
             <div className="control">
               <div id="break-label">Break Length</div>
-              <button id="break-decrement" onClick={() => handleDecrement("break")}>-</button>
+              <button id="break-decrement" onClick={() => decrement("break")}>-</button>
               <span id="break-length">{breakLength}</span>
-              <button id="break-increment" onClick={() => handleIncrement("break")}>+</button>
+              <button id="break-increment" onClick={() => increment("break")}>+</button>
             </div>
 
             <div className="control">
               <div id="session-label">Session Length</div>
-              <button id="session-decrement" onClick={() => handleDecrement("session")}>-</button>
+              <button id="session-decrement" onClick={() => decrement("session")}>-</button>
               <span id="session-length">{sessionLength}</span>
-              <button id="session-increment" onClick={() => handleIncrement("session")}>+</button>
+              <button id="session-increment" onClick={() => increment("session")}>+</button>
             </div>
           </div>
 
           <div id="timer-label">{timerLabel}</div>
           <div id="time-left">{formatTime(timeLeft)}</div>
 
-          <div className="controls">
+          <div>
             <button id="start_stop" onClick={startStop}>Start / Stop</button>
             <button id="reset" onClick={reset}>Reset</button>
           </div>
