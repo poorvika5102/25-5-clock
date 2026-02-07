@@ -61,24 +61,21 @@
       const [breakLength, setBreakLength] = React.useState(5);
       const [sessionLength, setSessionLength] = React.useState(25);
       const [timeLeft, setTimeLeft] = React.useState(25 * 60);
-      const [timerLabel, setTimerLabel] = React.useState("Session");
+      const [label, setLabel] = React.useState("Session");
       const [running, setRunning] = React.useState(false);
-      const [phaseSwitch, setPhaseSwitch] = React.useState(false);
 
       const intervalRef = React.useRef(null);
       const beepRef = React.useRef(null);
 
-      const formatTime = (time) => {
-        const m = String(Math.floor(time / 60)).padStart(2, "0");
-        const s = String(time % 60).padStart(2, "0");
+      const formatTime = (t) => {
+        const m = String(Math.floor(t / 60)).padStart(2, "0");
+        const s = String(t % 60).padStart(2, "0");
         return `${m}:${s}`;
       };
 
       const increment = (type) => {
         if (running) return;
-        if (type === "break" && breakLength < 60) {
-          setBreakLength(breakLength + 1);
-        }
+        if (type === "break" && breakLength < 60) setBreakLength(breakLength + 1);
         if (type === "session" && sessionLength < 60) {
           setSessionLength(sessionLength + 1);
           setTimeLeft((sessionLength + 1) * 60);
@@ -87,9 +84,7 @@
 
       const decrement = (type) => {
         if (running) return;
-        if (type === "break" && breakLength > 1) {
-          setBreakLength(breakLength - 1);
-        }
+        if (type === "break" && breakLength > 1) setBreakLength(breakLength - 1);
         if (type === "session" && sessionLength > 1) {
           setSessionLength(sessionLength - 1);
           setTimeLeft((sessionLength - 1) * 60);
@@ -98,22 +93,16 @@
 
       const tick = () => {
         setTimeLeft(prev => {
-          // FIRST time hitting 00:00
-          if (prev === 0 && !phaseSwitch) {
+          if (prev === 0) {
             beepRef.current.play();
-            setTimerLabel(timerLabel === "Session" ? "Break" : "Session");
-            setPhaseSwitch(true);
-            return 0; // stay at 00:00 for one tick
+            if (label === "Session") {
+              setLabel("Break");
+              return breakLength * 60;
+            } else {
+              setLabel("Session");
+              return sessionLength * 60;
+            }
           }
-
-          // SECOND tick after 00:00 → load next timer
-          if (prev === 0 && phaseSwitch) {
-            setPhaseSwitch(false);
-            return timerLabel === "Break"
-              ? breakLength * 60
-              : sessionLength * 60;
-          }
-
           return prev - 1;
         });
       };
@@ -134,8 +123,7 @@
         setBreakLength(5);
         setSessionLength(25);
         setTimeLeft(25 * 60);
-        setTimerLabel("Session");
-        setPhaseSwitch(false);
+        setLabel("Session");
         beepRef.current.pause();
         beepRef.current.currentTime = 0;
       };
@@ -162,7 +150,7 @@
             </div>
           </div>
 
-          <div id="timer-label">{timerLabel}</div>
+          <div id="timer-label">{label}</div>
           <div id="time-left">{formatTime(timeLeft)}</div>
 
           <div>
