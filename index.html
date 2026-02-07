@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>25 + 5 Clock</title>
+
+  <!-- React 17 (FCC safe) -->
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #0f172a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    .clock {
+      background: #1e293b;
+      padding: 20px;
+      width: 350px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .length-control {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .control {
+      width: 45%;
+    }
+
+    button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #time-left {
+      font-size: 3rem;
+      margin: 15px 0;
+    }
+
+    .controls {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script type="text/babel">
+    function App() {
+      const [breakLength, setBreakLength] = React.useState(5);
+      const [sessionLength, setSessionLength] = React.useState(25);
+      const [timeLeft, setTimeLeft] = React.useState(25 * 60);
+      const [timerLabel, setTimerLabel] = React.useState("Session");
+      const [running, setRunning] = React.useState(false);
+
+      const intervalRef = React.useRef(null);
+      const beepRef = React.useRef(null);
+
+      const formatTime = (time) => {
+        const minutes = String(Math.floor(time / 60)).padStart(2, "0");
+        const seconds = String(time % 60).padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      };
+
+      const handleIncrement = (type) => {
+        if (running) return;
+        if (type === "break" && breakLength < 60) {
+          setBreakLength(breakLength + 1);
+        }
+        if (type === "session" && sessionLength < 60) {
+          setSessionLength(sessionLength + 1);
+          setTimeLeft((sessionLength + 1) * 60);
+        }
+      };
+
+      const handleDecrement = (type) => {
+        if (running) return;
+        if (type === "break" && breakLength > 1) {
+          setBreakLength(breakLength - 1);
+        }
+        if (type === "session" && sessionLength > 1) {
+          setSessionLength(sessionLength - 1);
+          setTimeLeft((sessionLength - 1) * 60);
+        }
+      };
+
+      const tick = () => {
+        setTimeLeft(prev => {
+          if (prev === 0) {
+            beepRef.current.play();
+            if (timerLabel === "Session") {
+              setTimerLabel("Break");
+              return breakLength * 60;
+            } else {
+              setTimerLabel("Session");
+              return sessionLength * 60;
+            }
+          }
+          return prev - 1;
+        });
+      };
+
+      const startStop = () => {
+        if (running) {
+          clearInterval(intervalRef.current);
+          setRunning(false);
+        } else {
+          intervalRef.current = setInterval(tick, 1000);
+          setRunning(true);
+        }
+      };
+
+      const reset = () => {
+        clearInterval(intervalRef.current);
+        setRunning(false);
+        setBreakLength(5);
+        setSessionLength(25);
+        setTimeLeft(25 * 60);
+        setTimerLabel("Session");
+        beepRef.current.pause();
+        beepRef.current.currentTime = 0;
+      };
+
+      React.useEffect(() => {
+        return () => clearInterval(intervalRef.current);
+      }, []);
+
+      return (
+        <div className="clock">
+          <div className="length-control">
+            <div className="control">
+              <div id="break-label">Break Length</div>
+              <button id="break-decrement" onClick={() => handleDecrement("break")}>-</button>
+              <span id="break-length">{breakLength}</span>
+              <button id="break-increment" onClick={() => handleIncrement("break")}>+</button>
+            </div>
+
+            <div className="control">
+              <div id="session-label">Session Length</div>
+              <button id="session-decrement" onClick={() => handleDecrement("session")}>-</button>
+              <span id="session-length">{sessionLength}</span>
+              <button id="session-increment" onClick={() => handleIncrement("session")}>+</button>
+            </div>
+          </div>
+
+          <div id="timer-label">{timerLabel}</div>
+          <div id="time-left">{formatTime(timeLeft)}</div>
+
+          <div className="controls">
+            <button id="start_stop" onClick={startStop}>Start / Stop</button>
+            <button id="reset" onClick={reset}>Reset</button>
+          </div>
+
+          <audio
+            id="beep"
+            ref={beepRef}
+            src="https://cdn.freecodecamp.org/testable-projects-fcc/audio/BeepSound.wav"
+          />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById("app"));
+  </script>
+
+  <!-- FCC Test Script MUST be LAST -->
+  <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+</body>
+</html>
