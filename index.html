@@ -63,15 +63,15 @@
       const [timeLeft, setTimeLeft] = React.useState(25 * 60);
       const [timerLabel, setTimerLabel] = React.useState("Session");
       const [running, setRunning] = React.useState(false);
-      const [justFinished, setJustFinished] = React.useState(false);
+      const [phaseSwitch, setPhaseSwitch] = React.useState(false);
 
       const intervalRef = React.useRef(null);
       const beepRef = React.useRef(null);
 
       const formatTime = (time) => {
-        const minutes = String(Math.floor(time / 60)).padStart(2, "0");
-        const seconds = String(time % 60).padStart(2, "0");
-        return `${minutes}:${seconds}`;
+        const m = String(Math.floor(time / 60)).padStart(2, "0");
+        const s = String(time % 60).padStart(2, "0");
+        return `${m}:${s}`;
       };
 
       const increment = (type) => {
@@ -98,22 +98,22 @@
 
       const tick = () => {
         setTimeLeft(prev => {
-          if (prev === 0) {
-            if (!justFinished) {
-              beepRef.current.play();
-              setJustFinished(true);
-              return 0; // stay at 00:00 for one tick
-            }
-
-            setJustFinished(false);
-            if (timerLabel === "Session") {
-              setTimerLabel("Break");
-              return breakLength * 60;
-            } else {
-              setTimerLabel("Session");
-              return sessionLength * 60;
-            }
+          // FIRST time hitting 00:00
+          if (prev === 0 && !phaseSwitch) {
+            beepRef.current.play();
+            setTimerLabel(timerLabel === "Session" ? "Break" : "Session");
+            setPhaseSwitch(true);
+            return 0; // stay at 00:00 for one tick
           }
+
+          // SECOND tick after 00:00 → load next timer
+          if (prev === 0 && phaseSwitch) {
+            setPhaseSwitch(false);
+            return timerLabel === "Break"
+              ? breakLength * 60
+              : sessionLength * 60;
+          }
+
           return prev - 1;
         });
       };
@@ -135,7 +135,7 @@
         setSessionLength(25);
         setTimeLeft(25 * 60);
         setTimerLabel("Session");
-        setJustFinished(false);
+        setPhaseSwitch(false);
         beepRef.current.pause();
         beepRef.current.currentTime = 0;
       };
